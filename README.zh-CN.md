@@ -1,38 +1,37 @@
 ﻿# RfcClient
 
-`RfcClient` is a DI-friendly SAP RFC client wrapper for SAP .NET Connector.
+`RfcClient` 是一个面向依赖注入的 SAP RFC 客户端封装库，基于 SAP .NET Connector (NCo) 构建。
 
-It targets `.NET 10.0`. The library supports multiple SAP RFC connection configs, request-scoped `ConfigId` switching, typed request/response mapping, and connection/invocation monitoring hooks.
+目标框架为 `.NET 10.0`。支持多 SAP RFC 连接配置、请求作用域内的 `ConfigId` 切换、强类型请求/响应映射，以及连接与调用监控扩展点。
 
-Additional documentation:
+更多文档：
 
-- [Project analysis and maintenance guide](docs/PROJECT_ANALYSIS.en-US.md)
-- [中文项目分析与维护指南](docs/PROJECT_ANALYSIS.zh-CN.md)
-- [中文版 README](README.zh-CN.md)
+- [项目分析与维护指南](docs/PROJECT_ANALYSIS.zh-CN.md)
+- [English README](README.md)
 
-## Features
+## 功能特性
 
-- Multiple SAP RFC connection configs by `ConfigId`
-- Default config selection through `IsDefault`
-- ASP.NET Core / generic host dependency injection support
-- Request-scoped RFC session switching through `IRfcClient.ConfigId`
-- Typed RFC input/output mapping with `[Table]` and `[Column]`
-- Connection and invocation monitoring extension points
-- SAP NCo runtime files included from project `libs`
+- 通过 `ConfigId` 管理多个 SAP RFC 连接配置
+- 通过 `IsDefault` 选择默认配置
+- 支持 ASP.NET Core / 通用主机的依赖注入
+- 可通过 `IRfcClient.ConfigId` 在请求作用域内切换 RFC 会话
+- 强类型 RFC 输入/输出映射（`[Table]` 和 `[Column]`）
+- 连接与调用监控扩展点
+- SAP NCo 运行时文件随项目 `libs` 目录提供
 
-## Installation
+## 安装
 
-Install the NuGet package:
+安装 NuGet 包：
 
 ```bash
 dotnet add package RfcClient
 ```
 
-The package targets `net10.0`.
+该包目标框架为 `net10.0`。
 
-## Configuration
+## 配置
 
-Add RFC connection configs to `appsettings.json`:
+在 `appsettings.json` 中添加 RFC 连接配置：
 
 ```json
 {
@@ -51,7 +50,7 @@ Add RFC connection configs to `appsettings.json`:
 }
 ```
 
-Supported `ConnectionString` parameters map to `RfcConfigParameter`:
+`ConnectionString` 支持的参数映射到 `RfcConfigParameter`：
 
 ```text
 ApplicationServer
@@ -74,30 +73,30 @@ MessageServerService
 MessageServerPort
 ```
 
-`ApplicationServer` / `Server` is used for direct application server connections. `MessageServerHost` is used for message server connections.
+`ApplicationServer` / `Server` 用于直连应用服务器模式，`MessageServerHost` 用于消息服务器（负载均衡）模式。
 
-## Register Services
+## 注册服务
 
-Register the client with `IServiceCollection`. Pass the configuration explicitly, or let it auto-resolve `IConfiguration` from the DI container:
+通过 `IServiceCollection` 注册客户端。可显式传入配置，也可让客户端自动从 DI 容器解析 `IConfiguration`：
 
 ```csharp
 using RfcClient;
 
-// Option 1: pass configuration explicitly
+// 方式一：手动传入配置
 builder.Services.AddRfcClient(builder.Configuration);
 
-// Option 2: auto-resolve IConfiguration from the DI container
+// 方式二：自动从 DI 容器中解析 IConfiguration
 builder.Services.AddRfcClient();
 ```
 
-If your SAP RFC settings live under a section:
+如果 SAP RFC 配置在某个配置节下：
 
 ```csharp
 builder.Services.AddRfcClient(
     builder.Configuration.GetSection("Rfc"));
 ```
 
-Programmatic registration is also supported:
+也支持编程方式注册：
 
 ```csharp
 using RfcClient;
@@ -113,9 +112,9 @@ builder.Services.AddRfcClient(options =>
 });
 ```
 
-## Define RFC Models
+## 定义 RFC 模型
 
-Use `[Table]` on the request type to declare the RFC function name. Use `[Column]` on properties to map SAP RFC parameter names.
+在请求类型上使用 `[Table]` 声明 RFC 函数名。在需要映射的属性上使用 `[Column]` 指定 SAP RFC 参数字段名。
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -169,9 +168,9 @@ public class SupplyDemandRow
 }
 ```
 
-## Basic Call
+## 基本调用
 
-Inject `IRfcClient` and invoke the RFC with typed request/response models:
+注入 `IRfcClient`，使用强类型请求/响应模型调用 RFC：
 
 ```csharp
 using RfcClient.Abstractions;
@@ -200,13 +199,13 @@ public class SupplyDemandService
 }
 ```
 
-`IRfcClient` exposes a scoped `ConfigId` property. If `ConfigId` is empty, the client uses the config marked with `IsDefault=true`. If no config is marked as default, it uses the first item in `RfcConnectionConfigs`.
+`IRfcClient` 公开了一个作用域级别的 `ConfigId` 属性。若 `ConfigId` 为空，客户端将使用 `IsDefault=true` 的配置；若未标记任何默认配置，则使用 `RfcConnectionConfigs` 中的第一项。
 
-## Switch ConfigId Per Request
+## 按请求切换 ConfigId
 
-Set `IRfcClient.ConfigId` inside the current request scope. After that, all `IRfcClient` calls in the same scope use that config automatically.
+在当前请求作用域内设置 `IRfcClient.ConfigId`，此后同一作用域内的所有 `IRfcClient` 调用都会自动使用该配置。
 
-Example middleware:
+中间件示例：
 
 ```csharp
 using RfcClient.Abstractions;
@@ -225,7 +224,7 @@ app.Use(async (context, next) =>
 });
 ```
 
-Example controller:
+控制器示例：
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
@@ -251,15 +250,15 @@ public class SupplyDemandController : ControllerBase
 }
 ```
 
-Calling the API with a header switches the SAP RFC config for that request:
+调用 API 时传入头部即可切换该请求的 SAP RFC 配置：
 
 ```http
 X-Sap-Rfc-ConfigId: Sap.JSY
 ```
 
-## Call With Explicit ConfigId
+## 显式指定 ConfigId 调用
 
-Set `IRfcClient.ConfigId` before invoking when you need explicit control over the RFC config:
+在需要显式控制 RFC 配置时，先设置 `IRfcClient.ConfigId` 再调用：
 
 ```csharp
 using RfcClient.Abstractions;
@@ -281,11 +280,11 @@ public class ManualRfcService
 }
 ```
 
-Set `ConfigId` back to an empty string to return to the default configured SAP RFC connection in the same scope.
+将 `ConfigId` 设回空字符串，即可在同一作用域内恢复到默认的 SAP RFC 连接。
 
-## Monitor Connections And Calls
+## 监控连接与调用
 
-Implement `IRfcConnectionMonitor` to observe resolved destinations and RFC invocations:
+实现 `IRfcConnectionMonitor` 接口来观测已解析的 destination 和 RFC 调用：
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -340,7 +339,7 @@ public class LoggingRfcConnectionMonitor : IRfcConnectionMonitor
 }
 ```
 
-Register the monitor before or after `AddRfcClient`:
+在 `AddRfcClient` 前后注册监控器：
 
 ```csharp
 using RfcClient.Abstractions;
@@ -349,11 +348,11 @@ builder.Services.AddSingleton<IRfcConnectionMonitor, LoggingRfcConnectionMonitor
 builder.Services.AddRfcClient(builder.Configuration);
 ```
 
-Do not log passwords or full connection strings.
+请不要记录密码或完整连接字符串。
 
-## Runtime Files
+## 运行时文件
 
-The project expects SAP NCo runtime files under the `libs` folder:
+项目依赖的 SAP NCo 运行时文件位于 `libs` 目录：
 
 ```text
 libs/cpc4n.dll
@@ -362,27 +361,25 @@ libs/sapnco.dll
 libs/sapnco_utils.dll
 ```
 
-During build, these files are copied to the output root directory alongside `RfcClient.dll`. They are also included in the NuGet package under `lib/net10.0/`.
+编译时这些文件会被复制到输出根目录，与 `RfcClient.dll` 并列。NuGet 包中它们位于 `lib/net10.0/`。两个清理配置项位于 `RfcOptions` 中：
 
-Configuration options: the library exposes two timing options in `RfcOptions`:
+- `CleanupInterval`（默认 `00:05:00`）：客户端检查空闲 destination 的频率。
+- `DestinationIdleTimeout`（默认 `00:10:00`）：destination 未被使用多久后从缓存中移除。
 
-- `CleanupInterval` (default `00:05:00`): how often the client checks for idle destinations to cleanup.
-- `DestinationIdleTimeout` (default `00:10:00`): how long a destination can stay unused before being removed from the cache.
+可在 `appsettings.json` 中或注册服务时通过代码设置。
 
-You can set these in `appsettings.json` or via code when registering the services.
+## XML 文档
 
-## XML Documentation
+本库在编译时生成 XML 文档文件（`RfcClient.xml`），与程序集一同输出到构建目录。Visual Studio、JetBrains Rider 等 IDE 会自动加载它，为公共类型和成员提供中英文内联说明。
 
-The library generates an XML documentation file (`RfcClient.xml`) alongside the assembly in the build output. IDEs such as Visual Studio and JetBrains Rider automatically pick it up to provide inline Chinese and English descriptions for public types and members.
-
-## Build And Pack
+## 构建与打包
 
 ```bash
 dotnet build .\RfcClient.sln
 dotnet pack .\RfcClient.csproj -c Release
 ```
 
-The package is generated under:
+生成的 NuGet 包位于：
 
 ```text
 bin/Release/RfcClient.0.1.0.nupkg

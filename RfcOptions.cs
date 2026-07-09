@@ -43,13 +43,11 @@ public class RfcOptions
 
         if (!string.IsNullOrWhiteSpace(ConfigId))
         {
-            if (!RfcConnectionConfigs.Any(config => IsSameConfigId(config.ConfigId, ConfigId)))
+            if (RfcConnectionConfigs.Any(config => IsSameConfigId(config.ConfigId, ConfigId)))
             {
-                throw new InvalidOperationException(
-                    $"SAP RFC default config '{ConfigId}' was not found in RfcConnectionConfigs.");
+                return ConfigId;
             }
-
-            return ConfigId;
+            // 未匹配到 ConfigId 时，回退到默认配置或第一项
         }
 
         var defaultConfigs = RfcConnectionConfigs.Where(config => config.IsDefault).ToArray();
