@@ -19,9 +19,9 @@
 
 `RfcClient` 是一个面向依赖注入的 SAP RFC 客户端封装库。它将 SAP .NET Connector 的 destination 注册、连接缓存、RFC function 创建、请求/响应映射和调用监控包装成一个 scoped `IRfcClient`。
 
-公开命名空间为 `mitzh`，接口命名空间为 `mitzh.Abstractions`。客户端既支持构造函数注入，也支持 Autofac Module 的属性注入。
+公开命名空间为 `mitzh`，接口命名空间为 `mitzh.Abstractions`。客户端支持 Microsoft DI 与 Autofac 构造函数注入，也保留属性注入入口。
 
-项目面向 `net10.0` 和 Windows x64。NuGet 1.0.1 通过传递构建文件自动把未指定平台或使用 `AnyCPU` 的消费项目调整为 `x64`。
+项目面向 `net10.0` 和 Windows x64。从 NuGet 1.0.1 开始，传递构建文件会自动把未指定平台或使用 `AnyCPU` 的消费项目调整为 `x64`；当前发布版本为 1.0.2。
 
 当前对外主入口是：
 
@@ -123,7 +123,7 @@ flowchart LR
 
 | 文件 | 主要职责 | 依赖 / 调用 | 被谁使用 |
 |---|---|---|---|
-| `RfcClient.csproj` | 定义 `net10.0`/x64 类库、SAP NCo DLL 引用、依赖和 NuGet 1.0.1 打包布局 | `libs/*.dll`、`Microsoft.Extensions.*`、`buildTransitive/*` | `RfcClient.sln`、构建工具 |
+| `RfcClient.csproj` | 定义 `net10.0`/x64 类库、SAP NCo DLL 引用、依赖和 NuGet 1.0.2 打包布局 | `libs/*.dll`、`Microsoft.Extensions.*`、`buildTransitive/*` | `RfcClient.sln`、构建工具 |
 | `RfcClient.sln` | Visual Studio x64 解决方案入口 | `RfcClient.csproj` | IDE / 构建工具 |
 | `README.md` | 用户使用说明、配置示例、模型示例、构建打包说明 | 项目公开 API | 使用者和维护者 |
 | `buildTransitive/RfcClient.props` | 将未指定平台或 `AnyCPU` 的消费项目默认设为 `x64` | MSBuild `PlatformTarget` | 所有直接和传递消费项目 |
@@ -137,7 +137,7 @@ flowchart LR
 | `RfcClient.cs` | scoped `IRfcClient` 实现；解析 `ConfigId` 并创建短生命周期 `RfcSession` | `IRfcDestinationRegistry`、`IRfcConfigProvider`、`IRfcConnectionMonitor`、`RfcSession` | DI 注册为 `IRfcClient` |
 | `RfcSession.cs` | 内部执行对象，执行一次 RFC 调用，包含元数据解析、校验、destination 获取、function 调用、监控回调和异常包装 | `IRfcDestinationRegistry`、`IRfcConnectionMonitor`、`RfcRequestMetadata`、`RfcTypeConverter`、SAP NCo、`IDisposable` | `RfcClient` |
 | `RfcOptions.cs` | 保存配置列表、默认配置逻辑、连接字符串解析入口 | `DbConnectionStringBuilder`、`RfcConfigParameter` | `RfcConfigProvider`、DI options |
-| `RfcConfigProvider.cs` | 将 `IOptions<RfcOptions>` 适配为配置提供者，并配置连接清理参数 | `RfcOptions`、`RfcConnectionManager.ConfigureCleanup` | `RfcClient`、`RfcDestinationRegistry` |
+| `RfcConfigProvider.cs` | 将 `IOptions<RfcOptions>` 或 `IConfiguration` 绑定为配置提供者，并配置连接清理参数 | `RfcOptions`、`IConfiguration`、`RfcConnectionManager.ConfigureCleanup` | `RfcClient`、`RfcDestinationRegistry` |
 | `RfcConfigParameter.cs` | SAP RFC 连接参数数据结构 | 无项目内依赖 | `RfcOptions`、`RfcConnectionManager`、监控上下文 |
 | `RfcDestinationRegistry.cs` | 注册所有配置到连接管理器，并包装 destination 获取与监控 | `IRfcConfigProvider`、`IRfcConnectionMonitor`、`RfcConnectionManager` | `RfcSession` |
 | `RfcConnectionManager.cs` | 进程级 SAP destination 注册、缓存、清理和 NCo `IDestinationConfiguration` 实现 | SAP NCo、`RfcConfigParameter`、`Timer`、并发字典 | `RfcDestinationRegistry`、`RfcConfigProvider` |
@@ -185,6 +185,8 @@ flowchart LR
 6. 每个配置被 `RfcConnectionConfig.ToRfcConfigParameter()` 转换。
 7. 每个 `ConfigId` 注册到 `RfcConnectionManager.RegisterDestination(...)`。
 8. `RfcConnectionManager` 首次注册时调用 SAP NCo 的 `RfcDestinationManager.RegisterDestinationConfiguration(...)`。
+
+Autofac 直接注册时，Module 将根配置或 `IConfigurationSection` 传给 `RfcConfigProvider`，提供器绑定出 `RfcOptions` 后再进入相同的 destination 注册路径。Microsoft DI 则通过 `IOptions<RfcOptions>` 工厂创建提供器。
 
 ### 9.2 默认业务调用路径
 

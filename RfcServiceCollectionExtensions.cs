@@ -99,7 +99,8 @@ public static class RfcServiceCollectionExtensions
     private static IServiceCollection AddRfcClientCore(IServiceCollection services)
     {
         services.TryAddSingleton<IRfcConnectionMonitor, RfcConnectionMonitor>();
-        services.TryAddSingleton<IRfcConfigProvider, RfcConfigProvider>();
+        services.TryAddSingleton<IRfcConfigProvider>(serviceProvider =>
+            new RfcConfigProvider(serviceProvider.GetRequiredService<IOptions<RfcOptions>>()));
         services.TryAddSingleton<IRfcDestinationRegistry, RfcDestinationRegistry>();
         services.TryAddScoped<IRfcClient, RfcClient>();
 

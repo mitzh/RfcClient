@@ -19,9 +19,9 @@ This roadmap is based on the repository source files, project file, solution fil
 
 `RfcClient` is a dependency-injection-friendly SAP RFC client wrapper. It packages SAP .NET Connector destination registration, destination caching, RFC function creation, request/response mapping, and invocation monitoring behind a scoped `IRfcClient`.
 
-The public implementation namespace is `mitzh`, and the interface namespace is `mitzh.Abstractions`. The client supports both constructor injection and Autofac Module property injection.
+The public implementation namespace is `mitzh`, and the interface namespace is `mitzh.Abstractions`. The client supports Microsoft DI and Autofac constructor injection and retains property-injection entry points.
 
-The project targets `net10.0` and Windows x64. NuGet 1.0.1 imports transitive build files that change an unspecified or `AnyCPU` consumer to `x64` automatically.
+The project targets `net10.0` and Windows x64. Starting with NuGet 1.0.1, transitive build files change an unspecified or `AnyCPU` consumer to `x64` automatically; the current release is 1.0.2.
 
 The current public entry point is:
 
@@ -123,7 +123,7 @@ flowchart LR
 
 | File | Primary responsibility | Depends on / calls | Used by |
 |---|---|---|---|
-| `RfcClient.csproj` | Defines the `net10.0`/x64 library, SAP NCo references, dependencies, and NuGet 1.0.1 package layout | `libs/*.dll`, `Microsoft.Extensions.*`, `buildTransitive/*` | `RfcClient.sln`, build tooling |
+| `RfcClient.csproj` | Defines the `net10.0`/x64 library, SAP NCo references, dependencies, and NuGet 1.0.2 package layout | `libs/*.dll`, `Microsoft.Extensions.*`, `buildTransitive/*` | `RfcClient.sln`, build tooling |
 | `RfcClient.sln` | Visual Studio x64 solution entry point | `RfcClient.csproj` | IDE / build tooling |
 | `README.md` | User guide, configuration examples, model examples, build and pack instructions | Public project APIs | Users and maintainers |
 | `buildTransitive/RfcClient.props` | Defaults an unspecified or `AnyCPU` consumer to `x64` | MSBuild `PlatformTarget` | All direct and transitive consumers |
@@ -137,7 +137,7 @@ flowchart LR
 | `RfcClient.cs` | Scoped `IRfcClient` implementation; resolves `ConfigId` and creates a short-lived `RfcSession` | `IRfcDestinationRegistry`, `IRfcConfigProvider`, `IRfcConnectionMonitor`, `RfcSession` | Registered as `IRfcClient` |
 | `RfcSession.cs` | Internal execution object for one RFC call: metadata lookup, validation, destination lookup, function invocation, monitoring callbacks, exception wrapping | `IRfcDestinationRegistry`, `IRfcConnectionMonitor`, `RfcRequestMetadata`, `RfcTypeConverter`, SAP NCo, `IDisposable` | `RfcClient` |
 | `RfcOptions.cs` | Stores config list, default-config logic, and connection-string parsing entry point | `DbConnectionStringBuilder`, `RfcConfigParameter` | `RfcConfigProvider`, DI options |
-| `RfcConfigProvider.cs` | Adapts `IOptions<RfcOptions>` to config-provider abstraction and configures connection cleanup | `RfcOptions`, `RfcConnectionManager.ConfigureCleanup` | `RfcClient`, `RfcDestinationRegistry` |
+| `RfcConfigProvider.cs` | Binds either `IOptions<RfcOptions>` or `IConfiguration` to the config-provider abstraction and configures cleanup | `RfcOptions`, `IConfiguration`, `RfcConnectionManager.ConfigureCleanup` | `RfcClient`, `RfcDestinationRegistry` |
 | `RfcConfigParameter.cs` | SAP RFC connection parameter data structure | No internal dependency | `RfcOptions`, `RfcConnectionManager`, monitoring contexts |
 | `RfcDestinationRegistry.cs` | Registers all configured destinations and wraps destination lookup with monitoring | `IRfcConfigProvider`, `IRfcConnectionMonitor`, `RfcConnectionManager` | `RfcSession` |
 | `RfcConnectionManager.cs` | Process-wide SAP destination registration, caching, cleanup, and NCo `IDestinationConfiguration` implementation | SAP NCo, `RfcConfigParameter`, `Timer`, concurrent dictionaries | `RfcDestinationRegistry`, `RfcConfigProvider` |
@@ -185,6 +185,8 @@ Consumers do not need to add `Platforms` or `PlatformTarget` explicitly. Explici
 6. Each config is converted with `RfcConnectionConfig.ToRfcConfigParameter()`.
 7. Each `ConfigId` is registered through `RfcConnectionManager.RegisterDestination(...)`.
 8. `RfcConnectionManager` registers its SAP NCo `IDestinationConfiguration` once through `RfcDestinationManager.RegisterDestinationConfiguration(...)`.
+
+For direct Autofac registration, the Module passes the root configuration or an `IConfigurationSection` to `RfcConfigProvider`; the provider binds `RfcOptions` and then enters the same destination-registration flow. Microsoft DI creates the provider through the `IOptions<RfcOptions>` factory path.
 
 ### 9.2 Default Business Invocation Path
 

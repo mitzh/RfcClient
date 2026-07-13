@@ -2,9 +2,9 @@
 
 ## Project Snapshot
 
-`RfcClient` 1.0.1 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
+`RfcClient` 1.0.2 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
 
-Public implementation types use the `mitzh` namespace, while abstractions use `mitzh.Abstractions`. `RfcClient` supports Microsoft DI constructor injection and Autofac Module property injection. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
+Public implementation types use the `mitzh` namespace, while abstractions use `mitzh.Abstractions`. `RfcClient` supports Microsoft DI and Autofac constructor injection and retains property-injection entry points. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
 
 The package expects SAP NCo runtime files under `libs/`:
 
@@ -40,7 +40,7 @@ Important components:
 - `IRfcClient`: exposes `ConfigId` and typed RFC invocation.
 - `RfcClient`: `IRfcClient` implementation, resolves the effective `ConfigId`, creates a short-lived `RfcSession`, and delegates the call.
 - `RfcOptions`: validates and converts configured connection strings.
-- `RfcConfigProvider`: exposes configured RFC destinations and applies cleanup settings.
+- `RfcConfigProvider`: binds RFC connection settings from either `IOptions<RfcOptions>` or `IConfiguration` and applies cleanup settings.
 - `RfcDestinationRegistry`: registers and resolves named SAP destinations.
 - `RfcConnectionManager`: owns SAP NCo destination configuration, destination cache, and idle cleanup.
 - `RfcSession`: invokes typed RFC calls and emits monitoring events.
@@ -110,6 +110,13 @@ Version 1.0.1 platform and packaging changes:
 - Added a transitive copy target so normal build and publish outputs both contain `ijwhost.dll`.
 - Standardized the root namespace on `mitzh` and abstractions on `mitzh.Abstractions`.
 
+Version 1.0.2 Autofac configuration-binding fix:
+
+- Added an `IConfiguration` construction path to `RfcConfigProvider`, supporting both root configuration and a selected section.
+- Microsoft DI now uses an explicit factory for the `IOptions<RfcOptions>` construction path, avoiding constructor ambiguity.
+- `RfcClient` can create a bound default provider from an injected `IConfiguration` and no longer falls back to an empty `RfcOptions`; if both configuration and provider are missing, it raises a clear exception immediately.
+- The Autofac Module explicitly creates `RfcConfigProvider` from the supplied configuration and constructor-injects the complete dependency chain into `RfcClient`.
+
 Following changes were made in this maintenance pass:
 
 - Renamed `ScopedRfcClient` class to `RfcClient`; the source file was renamed accordingly.
@@ -149,7 +156,7 @@ Package:
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-The output package is `bin/Release/RfcClient.1.0.1.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
+The output package is `bin/Release/RfcClient.1.0.2.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
 
 ## Maintenance Notes
 

@@ -26,7 +26,7 @@ Additional documentation:
 Install the NuGet package:
 
 ```bash
-dotnet add package RfcClient --version 1.0.1
+dotnet add package RfcClient --version 1.0.2
 ```
 
 The package targets `net10.0` and requires Windows x64 because the bundled SAP NCo assemblies are AMD64 binaries. Starting with version 1.0.1, the package automatically changes an unspecified or `AnyCPU` consumer target to `x64`; consuming projects do not need to add `Platforms` or `PlatformTarget` properties.
@@ -118,22 +118,30 @@ The public namespaces are `mitzh` and `mitzh.Abstractions`.
 
 ### Autofac Module registration
 
-`RfcClient` supports constructor injection and Autofac property injection. When the three dependency properties are not supplied, the built-in implementations are created lazily.
+`RfcClient` supports constructor injection and Autofac property injection; the constructor-injection setup below is recommended. `RfcConfigProvider` binds `RfcOptions` directly from the supplied `IConfiguration`. Even when only `IConfiguration` is injected into `RfcClient`, it creates a bound default provider instead of an empty fallback configuration.
 
 ```csharp
 using Autofac;
+using Microsoft.Extensions.Configuration;
 using mitzh;
 using mitzh.Abstractions;
 
 public sealed class RfcModule : Module
 {
+    private readonly IConfiguration _configuration;
+
+    public RfcModule(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
     protected override void Load(ContainerBuilder builder)
     {
         builder.RegisterType<RfcConnectionMonitor>()
             .As<IRfcConnectionMonitor>()
             .SingleInstance();
 
-        builder.RegisterType<RfcConfigProvider>()
+        builder.Register(_ => new RfcConfigProvider(_configuration))
             .As<IRfcConfigProvider>()
             .SingleInstance();
 
@@ -143,13 +151,24 @@ public sealed class RfcModule : Module
 
         builder.RegisterType<RfcClient>()
             .As<IRfcClient>()
-            .PropertiesAutowired()
             .InstancePerLifetimeScope();
     }
 }
 ```
 
-`RfcConfigProvider` requires `IOptions<RfcOptions>`. Register configured options in the Autofac container, or replace `ConfigProvider` with a custom implementation.
+Pass the application configuration when RFC settings are at the root:
+
+```csharp
+builder.RegisterModule(new RfcModule(configuration));
+```
+
+Pass the corresponding section when RFC settings live under `Rfc`:
+
+```csharp
+builder.RegisterModule(new RfcModule(configuration.GetSection("Rfc")));
+```
+
+When ASP.NET Core uses `AutofacServiceProviderFactory`, `builder.Services.AddRfcClient(...)` remains supported because Autofac takes over the Microsoft DI Options registrations.
 
 ## Define RFC Models
 
@@ -448,5 +467,5 @@ dotnet pack .\RfcClient.csproj -c Release
 The package is generated under:
 
 ```text
-bin/Release/RfcClient.1.0.1.nupkg
+bin/Release/RfcClient.1.0.2.nupkg
 ```

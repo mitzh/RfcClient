@@ -25,7 +25,7 @@
 安装 NuGet 包：
 
 ```bash
-dotnet add package RfcClient --version 1.0.1
+dotnet add package RfcClient --version 1.0.2
 ```
 
 该包面向 `net10.0`，并且仅支持 Windows x64，因为随包提供的 SAP NCo 程序集是 AMD64 二进制文件。从 1.0.1 版本开始，当调用项目未显式指定目标平台或使用 `AnyCPU` 时，包会自动采用 `x64`；消费项目不需要添加 `Platforms` 或 `PlatformTarget` 属性。
@@ -117,22 +117,30 @@ builder.Services.AddRfcClient(options =>
 
 ### Autofac Module 注册
 
-`RfcClient` 同时支持构造函数注入和 Autofac 属性注入。三个依赖属性未传入时，会延迟创建项目内的默认实现。
+`RfcClient` 同时支持构造函数注入和 Autofac 属性注入，推荐使用下面的构造函数注入方式。`RfcConfigProvider` 会直接从传入的 `IConfiguration` 绑定 `RfcOptions`；即使只向 `RfcClient` 注入 `IConfiguration`，它也会创建已绑定的默认配置提供器，不会创建空配置。
 
 ```csharp
 using Autofac;
+using Microsoft.Extensions.Configuration;
 using mitzh;
 using mitzh.Abstractions;
 
 public sealed class RfcModule : Module
 {
+    private readonly IConfiguration _configuration;
+
+    public RfcModule(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
     protected override void Load(ContainerBuilder builder)
     {
         builder.RegisterType<RfcConnectionMonitor>()
             .As<IRfcConnectionMonitor>()
             .SingleInstance();
 
-        builder.RegisterType<RfcConfigProvider>()
+        builder.Register(_ => new RfcConfigProvider(_configuration))
             .As<IRfcConfigProvider>()
             .SingleInstance();
 
@@ -142,13 +150,24 @@ public sealed class RfcModule : Module
 
         builder.RegisterType<RfcClient>()
             .As<IRfcClient>()
-            .PropertiesAutowired()
             .InstancePerLifetimeScope();
     }
 }
 ```
 
-`RfcConfigProvider` 依赖 `IOptions<RfcOptions>`。使用 Autofac 时应注册已配置的 Options，或通过 `ConfigProvider` 属性传入自定义实现。
+配置位于根节点时传入应用的 `IConfiguration`：
+
+```csharp
+builder.RegisterModule(new RfcModule(configuration));
+```
+
+配置位于 `Rfc` 子节点时传入该配置节：
+
+```csharp
+builder.RegisterModule(new RfcModule(configuration.GetSection("Rfc")));
+```
+
+如果使用 `AutofacServiceProviderFactory` 集成 ASP.NET Core，也可以继续通过 `builder.Services.AddRfcClient(...)` 注册，Microsoft DI 的 Options 注册会被 Autofac 容器接管。
 
 ## 定义 RFC 模型
 
@@ -447,5 +466,5 @@ dotnet pack .\RfcClient.csproj -c Release
 生成的 NuGet 包位于：
 
 ```text
-bin/Release/RfcClient.1.0.1.nupkg
+bin/Release/RfcClient.1.0.2.nupkg
 ```

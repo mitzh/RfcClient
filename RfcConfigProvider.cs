@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using mitzh.Abstractions;
 
@@ -10,6 +11,18 @@ namespace mitzh;
 public class RfcConfigProvider : IRfcConfigProvider
 {
     private readonly RfcOptions _options;
+
+    /// <summary>
+    ///   使用应用程序配置初始化 <see cref="RfcConfigProvider"/> 类的新实例。
+    ///   适用于 Autofac 等直接注入 <see cref="IConfiguration"/> 的容器。
+    /// </summary>
+    /// <param name="configuration">
+    ///   RFC 配置根节点；如果配置位于子节点，应传入对应的 <see cref="IConfigurationSection"/>。
+    /// </param>
+    public RfcConfigProvider(IConfiguration configuration)
+        : this(CreateOptions(configuration))
+    {
+    }
 
     /// <summary>
     ///   初始化 <see cref="RfcConfigProvider"/> 类的新实例。
@@ -49,5 +62,19 @@ public class RfcConfigProvider : IRfcConfigProvider
     public IReadOnlyDictionary<string, RfcConfigParameter> GetConfigParameters()
     {
         return _options.GetRfcDestinations();
+    }
+
+    /// <summary>
+    ///   将应用程序配置绑定为 RFC 选项。
+    /// </summary>
+    /// <param name="configuration">RFC 配置根节点。</param>
+    /// <returns>包含已绑定 RFC 配置的选项包装器。</returns>
+    private static IOptions<RfcOptions> CreateOptions(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var options = new RfcOptions();
+        configuration.Bind(options);
+        return Options.Create(options);
     }
 }

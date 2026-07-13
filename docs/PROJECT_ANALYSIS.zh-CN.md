@@ -2,9 +2,9 @@
 
 ## 项目概览
 
-`RfcClient` 1.0.1 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
+`RfcClient` 1.0.2 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
 
-公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 构造注入和 Autofac Module 属性注入；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
+公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 和 Autofac 构造注入，也保留属性注入入口；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
 
 项目要求 SAP NCo 运行时文件位于 `libs/` 目录：
 
@@ -40,7 +40,7 @@ IRfcClient
 - `IRfcClient`：暴露 `ConfigId` 和强类型 RFC 调用。
 - `RfcClient`：解析实际使用的 `ConfigId`，创建短生命周期 `RfcSession`，并委托执行调用。
 - `RfcOptions`：校验配置并将连接字符串转换为 RFC 参数。
-- `RfcConfigProvider`：提供 RFC 连接配置，并应用连接清理参数。
+- `RfcConfigProvider`：可从 `IOptions<RfcOptions>` 或 `IConfiguration` 绑定 RFC 连接配置，并应用连接清理参数。
 - `RfcDestinationRegistry`：注册和解析命名 SAP destination。
 - `RfcConnectionManager`：管理 SAP NCo destination 配置、destination 缓存和空闲清理。
 - `RfcSession`：执行强类型 RFC 调用，并发送监控事件。
@@ -107,6 +107,13 @@ var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
 - 增加传递复制目标，确保普通构建和发布目录都包含 `ijwhost.dll`。
 - 将根命名空间统一为 `mitzh`，抽象接口统一为 `mitzh.Abstractions`。
 
+1.0.2 Autofac 配置绑定修复：
+
+- `RfcConfigProvider` 新增 `IConfiguration` 构造路径，支持根配置和指定配置节。
+- Microsoft DI 使用显式工厂选择 `IOptions<RfcOptions>` 构造路径，避免双构造函数歧义。
+- `RfcClient` 可从注入的 `IConfiguration` 创建已绑定的默认配置提供器，不再回退到空 `RfcOptions`；配置与提供器都缺失时立即抛出明确异常。
+- Autofac Module 通过 `new RfcConfigProvider(configuration)` 显式绑定配置，再以构造函数方式注入 `RfcClient`。
+
 本次维护调整了作用域级配置切换 API：
 
 - 在 `IRfcClient` 上新增 `ConfigId`。
@@ -139,7 +146,7 @@ dotnet build .\RfcClient.sln -c Release
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-输出包为 `bin/Release/RfcClient.1.0.1.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
+输出包为 `bin/Release/RfcClient.1.0.2.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
 
 ## 维护建议
 
