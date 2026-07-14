@@ -21,7 +21,7 @@ This roadmap is based on the repository source files, project file, solution fil
 
 The public implementation namespace is `mitzh`, and the interface namespace is `mitzh.Abstractions`. The client supports Microsoft DI and Autofac constructor injection and retains property-injection entry points.
 
-The project targets `net10.0` and Windows x64. Starting with NuGet 1.0.1, transitive build files change an unspecified or `AnyCPU` consumer to `x64` automatically; the current release is 1.0.2.
+The project targets `net10.0` and Windows x64. Starting with NuGet 1.0.1, transitive build files change an unspecified or `AnyCPU` consumer to `x64` automatically; the current release is 1.0.3.
 
 The current public entry point is:
 
@@ -123,7 +123,7 @@ flowchart LR
 
 | File | Primary responsibility | Depends on / calls | Used by |
 |---|---|---|---|
-| `RfcClient.csproj` | Defines the `net10.0`/x64 library, SAP NCo references, dependencies, and NuGet 1.0.2 package layout | `libs/*.dll`, `Microsoft.Extensions.*`, `buildTransitive/*` | `RfcClient.sln`, build tooling |
+| `RfcClient.csproj` | Defines the `net10.0`/x64 library, SAP NCo references, dependencies, and NuGet 1.0.3 package layout | `libs/*.dll`, `Microsoft.Extensions.*`, `buildTransitive/*` | `RfcClient.sln`, build tooling |
 | `RfcClient.sln` | Visual Studio x64 solution entry point | `RfcClient.csproj` | IDE / build tooling |
 | `README.md` | User guide, configuration examples, model examples, build and pack instructions | Public project APIs | Users and maintainers |
 | `buildTransitive/RfcClient.props` | Defaults an unspecified or `AnyCPU` consumer to `x64` | MSBuild `PlatformTarget` | All direct and transitive consumers |

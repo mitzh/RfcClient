@@ -9,7 +9,7 @@
         <RootNamespace>mitzh</RootNamespace>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <PackageId>RfcClient</PackageId>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
         <Authors>mitzh</Authors>
         <Company>mitzh.com</Company>
         <Description>A DI-friendly SAP RFC client wrapper for SAP .NET Connector.</Description>

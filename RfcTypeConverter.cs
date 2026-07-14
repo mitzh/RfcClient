@@ -78,6 +78,11 @@ public static class RfcTypeConverter
         foreach (var property in GetColumnProperties(input.GetType()).Where(t => t.CanRead))
         {
             var key = GetColumnName(property);
+            if (key is null)
+            {
+                continue;
+            }
+
             var value = property.GetValue(input);
             if (value is null or DBNull)
             {
@@ -127,7 +132,7 @@ public static class RfcTypeConverter
         var result = new T();
         var properties = GetColumnProperties(typeof(T))
             .Where(p => p.CanWrite)
-            .ToDictionary(GetColumnName, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(GetRequiredColumnName, StringComparer.OrdinalIgnoreCase);
 
         foreach (var parameter in function)
         {
@@ -162,17 +167,24 @@ public static class RfcTypeConverter
     ///   获取属性上 ColumnAttribute 定义的列名。
     /// </summary>
     /// <param name="property">属性信息。</param>
-    /// <returns>ColumnAttribute 定义的名称。</returns>
+    /// <returns>ColumnAttribute 定义的名称；未定义有效名称时返回 <see langword="null"/>。</returns>
     private static string GetColumnName(PropertyInfo property)
     {
         var name = property.GetCustomAttribute<ColumnAttribute>()?.Name;
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new InvalidOperationException(
-                $"Property '{property.DeclaringType?.FullName}.{property.Name}' must define a non-empty ColumnAttribute name.");
-        }
+        return string.IsNullOrWhiteSpace(name) ? null : name;
+    }
 
-        return name;
+    /// <summary>
+    ///   获取属性上 <see cref="ColumnAttribute"/> 定义的有效列名。
+    /// </summary>
+    /// <param name="property">属性信息。</param>
+    /// <returns><see cref="ColumnAttribute"/> 定义的非空名称。</returns>
+    /// <exception cref="InvalidOperationException">属性未定义有效列名。</exception>
+    private static string GetRequiredColumnName(PropertyInfo property)
+    {
+        return GetColumnName(property)
+            ?? throw new InvalidOperationException(
+                $"Property '{property.DeclaringType?.FullName}.{property.Name}' must define a non-empty ColumnAttribute name.");
     }
 
     /// <summary>
@@ -280,7 +292,7 @@ public static class RfcTypeConverter
 
         var properties = GetColumnProperties(effectiveType)
             .Where(p => p.CanWrite)
-            .ToDictionary(GetColumnName, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(GetRequiredColumnName, StringComparer.OrdinalIgnoreCase);
 
         foreach (var field in structure)
         {

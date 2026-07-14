@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-`RfcClient` 1.0.2 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
+`RfcClient` 1.0.3 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
 
 公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 和 Autofac 构造注入，也保留属性注入入口；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
 
@@ -114,6 +114,11 @@ var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
 - `RfcClient` 可从注入的 `IConfiguration` 创建已绑定的默认配置提供器，不再回退到空 `RfcOptions`；配置与提供器都缺失时立即抛出明确异常。
 - Autofac Module 通过 `new RfcConfigProvider(configuration)` 显式绑定配置，再以构造函数方式注入 `RfcClient`。
 
+1.0.3 输入映射调整：
+
+- `RfcTypeConverter.SetInputValue<T>` 遇到 `[Column]` 名称为 `null`、空字符串或纯空白的属性时直接跳过，不再在 RFC 调用前失败。
+- 输出映射继续严格校验列名，使错误的响应模型仍能获得明确异常。
+
 本次维护调整了作用域级配置切换 API：
 
 - 在 `IRfcClient` 上新增 `ConfigId`。
@@ -146,7 +151,7 @@ dotnet build .\RfcClient.sln -c Release
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-输出包为 `bin/Release/RfcClient.1.0.2.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
+输出包为 `bin/Release/RfcClient.1.0.3.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
 
 ## 维护建议
 
