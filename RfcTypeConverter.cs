@@ -89,7 +89,7 @@ public static class RfcTypeConverter
                 continue;
             }
 
-            function.SetValue(key, ConvertToSapValue(value));
+            SetInputParameter(function, key, value);
         }
     }
 
@@ -113,7 +113,115 @@ public static class RfcTypeConverter
                 continue;
             }
 
-            function.SetValue(key, ConvertToSapValue(entry.Value));
+            SetInputParameter(function, key, entry.Value);
+        }
+    }
+
+    /// <summary>
+    ///   设置单个 RFC 输入参数。数组和列表在目标参数为 TABLE 时逐行写入。
+    /// </summary>
+    private static void SetInputParameter(IRfcFunction function, string key, object value)
+    {
+        var parameter = function[key];
+        if (parameter.Metadata.DataType == RfcDataType.TABLE && IsTableCollection(value))
+        {
+            SetTableValue(parameter.GetTable(), (IEnumerable)value, key);
+            return;
+        }
+
+        function.SetValue(key, ConvertToSapValue(value));
+    }
+
+    /// <summary>
+    ///   判断值是否为可映射到 RFC TABLE 的一维数组或 IList 集合。
+    /// </summary>
+    private static bool IsTableCollection(object value)
+    {
+        if (value is byte[])
+        {
+            return false;
+        }
+
+        return value switch
+        {
+            Array array => array.Rank == 1,
+            IList => true,
+            _ => false
+        };
+    }
+
+    /// <summary>
+    ///   将 .NET 集合写入 RFC TABLE。
+    /// </summary>
+    private static void SetTableValue(IRfcTable table, IEnumerable rows, string parameterName)
+    {
+        table.Clear();
+
+        var rowIndex = 0;
+        foreach (var row in rows)
+        {
+            if (row is null or DBNull)
+            {
+                throw new ArgumentException(
+                    $"RFC table parameter '{parameterName}' contains a null row at index {rowIndex}.",
+                    parameterName);
+            }
+
+            table.Append();
+            SetTableRow(table.CurrentRow, row, parameterName, rowIndex);
+            rowIndex++;
+        }
+    }
+
+    /// <summary>
+    ///   将对象或字典中的字段写入当前 RFC TABLE 行。
+    /// </summary>
+    private static void SetTableRow(IRfcStructure targetRow, object sourceRow, string parameterName, int rowIndex)
+    {
+        if (sourceRow is IDictionary dictionary)
+        {
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                if (entry.Key is not string key || string.IsNullOrWhiteSpace(key))
+                {
+                    throw new ArgumentException(
+                        $"RFC table parameter '{parameterName}' row {rowIndex} contains an invalid dictionary key.",
+                        parameterName);
+                }
+
+                if (entry.Value is not null and not DBNull)
+                {
+                    targetRow.SetValue(key, ConvertToSapValue(entry.Value));
+                }
+            }
+
+            return;
+        }
+
+        var properties = GetColumnProperties(sourceRow.GetType())
+            .Where(property => property.CanRead)
+            .ToArray();
+        if (properties.Length == 0)
+        {
+            throw new ArgumentException(
+                $"RFC table parameter '{parameterName}' row type '{sourceRow.GetType().FullName}' " +
+                "must contain at least one readable property with a ColumnAttribute.",
+                parameterName);
+        }
+
+        foreach (var property in properties)
+        {
+            var key = GetColumnName(property);
+            if (key is null)
+            {
+                continue;
+            }
+
+            var value = property.GetValue(sourceRow);
+            if (value is not null and not DBNull)
+            {
+                targetRow.SetValue(key, ConvertToSapValue(value));
+            }
         }
     }
 

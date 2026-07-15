@@ -21,7 +21,7 @@
 
 公开命名空间为 `Mitzh`，接口命名空间为 `Mitzh.Abstractions`。客户端支持 Microsoft DI 与 Autofac 构造函数注入，也保留属性注入入口。
 
-项目面向 `net10.0` 和 Windows x64。从 NuGet 1.0.1 开始，传递构建文件会自动把未指定平台或使用 `AnyCPU` 的消费项目调整为 `x64`；当前发布版本为 1.0.4。
+项目面向 `net10.0` 和 Windows x64。从 NuGet 1.0.1 开始，传递构建文件会自动把未指定平台或使用 `AnyCPU` 的消费项目调整为 `x64`；当前发布版本为 1.0.5。
 
 当前对外主入口是：
 
@@ -123,7 +123,7 @@ flowchart LR
 
 | 文件 | 主要职责 | 依赖 / 调用 | 被谁使用 |
 |---|---|---|---|
-| `RfcClient.csproj` | 定义 `net10.0`/x64 类库、SAP NCo DLL 引用、依赖和 NuGet 1.0.4 打包布局 | `libs/*.dll`、`Microsoft.Extensions.*`、`buildTransitive/*` | `RfcClient.sln`、构建工具 |
+| `RfcClient.csproj` | 定义 `net10.0`/x64 类库、SAP NCo DLL 引用、依赖和 NuGet 1.0.5 打包布局 | `libs/*.dll`、`Microsoft.Extensions.*`、`buildTransitive/*` | `RfcClient.sln`、构建工具 |
 | `RfcClient.sln` | Visual Studio x64 解决方案入口 | `RfcClient.csproj` | IDE / 构建工具 |
 | `README.md` | 用户使用说明、配置示例、模型示例、构建打包说明 | 项目公开 API | 使用者和维护者 |
 | `buildTransitive/RfcClient.props` | 将未指定平台或 `AnyCPU` 的消费项目默认设为 `x64` | MSBuild `PlatformTarget` | 所有直接和传递消费项目 |

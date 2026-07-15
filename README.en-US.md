@@ -26,7 +26,7 @@ Additional documentation:
 Install the NuGet package:
 
 ```bash
-dotnet add package RfcClient --version 1.0.4
+dotnet add package RfcClient --version 1.0.5
 ```
 
 The package targets `net10.0` and requires Windows x64 because the bundled SAP NCo assemblies are AMD64 binaries. Starting with version 1.0.1, the package automatically changes an unspecified or `AnyCPU` consumer target to `x64`; consuming projects do not need to add `Platforms` or `PlatformTarget` properties.
@@ -468,5 +468,5 @@ dotnet pack .\RfcClient.csproj -c Release
 The package is generated under:
 
 ```text
-bin/Release/RfcClient.1.0.4.nupkg
+bin/Release/RfcClient.1.0.5.nupkg
 ```
